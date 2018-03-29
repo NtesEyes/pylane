@@ -13,6 +13,7 @@ setup(
     author='valensc, Wu Xiao',
     author_email='weidong1312@gmail.com, None',
     url='https://github.com/NtesEyes/pylane',
+    download_url='https://github.com/NtesEyes/pylane/archive/0.0.1.tar.gz',
     packages=[
         'pylane',
         'pylane.core',
