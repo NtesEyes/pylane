@@ -11,7 +11,7 @@ setup(
     name='pylane',
     version=VERSION,
     author='valensc, Wu Xiao',
-    author_email='weidong1312@gmail.com, None',
+    author_email='weidong1312@gmail.com, notgiven@gmail.com',
     url='https://github.com/NtesEyes/pylane',
     download_url='https://github.com/NtesEyes/pylane/archive/0.0.1.tar.gz',
     packages=[
