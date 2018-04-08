@@ -27,7 +27,8 @@ setup(
         # 'build_py': build_py
     # },
     install_requires=[
-        "ipython>=4.0.0"
+        "ipython>=4.0.0",
+        "click"
     ],
     keywords=['debug', 'attach', 'gdb', 'shell']
 )
