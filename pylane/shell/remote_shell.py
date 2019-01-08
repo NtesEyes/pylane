@@ -4,13 +4,14 @@ import sys
 import traceback
 import threading
 import code
+import json
 
 from pylane.shell.sock import SockClient
 
 if sys.version_info[0] == 3:
     from io import StringIO
 else:
-    from StringIO import StringIO
+    from io import BytesIO as StringIO
 
 
 class OutputHookContext(object):
@@ -31,8 +32,8 @@ class OutputHookContext(object):
 
     def truncate(self):
         for io in (sys.stdout, sys.stderr):
-            if isinstance(io, StringIO):
-                io.buf = ''
+            io.seek(0)
+            io.truncate()
 
     def getvalue(self):
         return (self.stdout.getvalue(), self.stderr.getvalue())
@@ -70,9 +71,6 @@ class RemoteShellThread(threading.Thread):
         self.in_user_defined_executor = False
         self.user_defined_executor_local = {}
 
-        # use code for more compatibility
-        #   even if we provide some ipython features
-        # TODO may integrate ipython someday
         self._interpreter = code.InteractiveInterpreter(locals=locals())
         self.runsource('import sys')
         self.runsource('import __main__ as main')
@@ -86,9 +84,8 @@ class RemoteShellThread(threading.Thread):
         """
         while True:
             cmd = self.sock.recv()
-            if cmd is None:
-                continue
-            if cmd is '':
+            # recv of sock closed returns '' in py2 and None in py3
+            if cmd == '' or cmd is None:
                 break
             flag = '0'
             self.sock.send(flag + self.runsource(cmd))
@@ -98,29 +95,37 @@ class RemoteShellThread(threading.Thread):
         run code in interpreter
         """
         with self.lock:
-            if source == '$enter_executor\n':
+            source_strip = source.strip()
+            if source_strip == '$enter_executor':
                 if self.user_defined_executor:
                     self.in_user_defined_executor = True
                     return 'True'
                 else:
                     return 'False, _user_defined_executor not found'
-            if source == '$exit_executor\n':
+            if source_strip == '$exit_executor':
                 self.in_user_defined_executor = False
                 return 'True'
 
-            op = '\n'
-            with self.stdio_hook:
-                if self.in_user_defined_executor and self.user_defined_executor:
+            if self.in_user_defined_executor and self.user_defined_executor:
+                with self.stdio_hook:
                     return repr(self.user_defined_executor(
-                        source.replace('\n', ''),
+                        source_strip,
                         self.user_defined_executor_local
                     ))
-                extend_function = self.get_extend_function(source)
-                if extend_function:
-                    return extend_function(self, source)
 
+            extend_function = self.get_extend_function(source_strip)
+            if extend_function:
+                with self.stdio_hook:
+                    try:
+                        return extend_function(self, source_strip)
+                    except Exception as e:
+                        print("Failed to run source", source, "err:", e)
+
+            with self.stdio_hook:
                 state, op = self._runsource(source)
-            return op
+                if not state:
+                    print("Failed to run source", source)
+                return op
 
     def get_output(self):
         """
@@ -152,16 +157,15 @@ class RemoteShellThread(threading.Thread):
         support object?
         TODO more info when object??
         """
-        item = source.replace('??\n', '').replace('?\n', '')
+        item = source.replace('??', '').replace('?', '')
         state, doc = self._runsource('%s.__doc__' % item)
         if not state:
             return doc
-        # pre eval and decode to support unicode doc
-        doc = eval(doc).decode(self.encoding)
         state, type_ = self._runsource('type(%s).__name__' % item)
-        type_ = eval(type_)
-
-        op = "Type: %s\nDocstring: %s\n" % (type_, doc)
+        state, type_ = self._runsource('type(%s).__name__' % item)
+        if not state:
+            return type_
+        op = "Type: %sDocstring: %s" % (type_, doc)
         return op
 
     def complete(self, source):
@@ -196,7 +200,7 @@ class RemoteShellThread(threading.Thread):
                 if t.startswith(text):
                     suggs.append(t)
 
-        return repr(suggs)
+        return json.dumps(suggs)
 
     def user_defined_function(self, source):
         import __main__ as main
@@ -206,15 +210,15 @@ class RemoteShellThread(threading.Thread):
             return 'User defined handler not found'
         source = "main.%s('%s')" % (handler.__name__, source.replace('\n', ''))
         state, op = self._runsource(source)
-        if not isinstance(op, basestring):
+        if not isinstance(op, str):
             op = repr(op)
         return op
 
     def get_extend_function(self, source):
         """
         """
-        if source.endswith('?\n'):
-            return self.extend_functions['help']
+        if source.endswith('?'):
+            return self.extend_functions['help_doc']
         if source.startswith('$'):
             return self.extend_functions['udf']
         return self.extend_functions.get(
@@ -222,7 +226,7 @@ class RemoteShellThread(threading.Thread):
         )
 
     extend_functions = {
-        'help': run_help_doc,
+        'help_doc': run_help_doc,
         'udf': user_defined_function,
         'complete': complete
     }

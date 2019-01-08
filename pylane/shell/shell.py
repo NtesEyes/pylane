@@ -12,7 +12,7 @@ class Shell(object):
     # pre_codes defined to run before shell is available
     pre_codes = [
         """
-            print 'Command: %s %s %s' % (
+            print('Command: %s %s %s' % (
                 sys.executable,
                 getattr(main, '__file__', '__main__'),
                 ' '.join([
@@ -21,21 +21,22 @@ class Shell(object):
                     )
                     for arg in sys.argv[1:]
                 ]),
-            )
+            ))
         """,
         "import pylane.shell.help_functions as tools",
-        "tools = reload(tools)",
+        # "from imp import reload",
+        # "tools = reload(tools)",
     ]
 
     # extend help infos followed by ipython help info
     extend_help = """Welcome to pylane shell. Features below are avaliable:
-    Auto Completion:
-        Remote auto completion is available, use TAB to trigger.
-    Global Variables In Shell:
-        Use 'main' to access remote process's __main__.
-        Use 'tools' to get pylane toolkit functions.
-            Example: tools.get_insts(YOUR_CLASS_NAME).
-            Use tools.a_tool? for more usage info.
+    Use TAB to get remote auto completion.
+    Use 'main' to access remote process's __main__ object.
+    Use 'tools' to get pylane toolkit functions.
+        Example: tools.get_insts(YOUR_CLASS_NAME).
+    Use 'a_object?' for more usage info.
+    """
+    udf_help = """
     User Defined Executor:
         Put a _user_defined_executor(input, local) function in __main__ global,
             then use $enter_executor to enter, $exit_executor to exit.
@@ -44,7 +45,6 @@ class Shell(object):
     User Defined Functions:
         Put a _user_defined_handler($cmd) function in __main__ global,
             then use $cmd to call them.
-    Alternative shell in IPython, contact author if you need more IPython features and help functions
     """
 
     def __init__(self,
@@ -62,7 +62,7 @@ class Shell(object):
         """run shell server and connect"""
         shell_proxy = ShellProxy(self.inject_args)
         shell_proxy.run()
-        shell_proxy.runsource("print '''%s'''" % self.extend_help)
+        shell_proxy.runsource("print('''%s''')" % self.extend_help)
         for pre_code in self.pre_codes:
             code = self.raw_code(pre_code)
             shell_proxy.runsource(code)

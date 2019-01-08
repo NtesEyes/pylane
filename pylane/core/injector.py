@@ -180,6 +180,8 @@ class Injector(object):
         codes = self.generate_gdb_codes()
         process = self.run(codes)
         timer = Timer(self.timeout, lambda p: p.kill(), [process])
+        out = b''
+        err = b''
         try:
             timer.start()
             out, err = process.communicate()
@@ -187,14 +189,14 @@ class Injector(object):
             timer.cancel()
             self.cleanup()
             if self.verbose:
-                print 'stdout:'
-                print out
-                print 'stderr:',
-                print err
-            if 'Operation not permitted' in err:
-                print 'Cannot attach a process without perm.'
+                print('stdout:')
+                print(out)
+                print('stderr:')
+                print(err)
+            if b'Operation not permitted' in err:
+                print('Cannot attach a process without perm.')
                 if self.env.get('ubuntu'):
-                    print 'You may need root perm to use ptrace in Ubuntu.'
+                    print('You may need root perm to use ptrace in Ubuntu.')
                 exit(1)
         return True
 

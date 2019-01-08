@@ -43,11 +43,11 @@ def get_classes(class_name):
 def cast_id(object_id):
     """cast_id(object_id) -> object"""
     if not getattr(cast_id, 'ensured', False):
-        print 'Warning: If you provide an invalid or expired id, '\
+        print('Warning: If you provide an invalid or expired id, '\
             + 'this call will cause a segment fault, '\
             + 'and the attached process will be killed.\n'\
             + 'cast_id will do nothing this time.\n'\
-            + 'If you know whats going on, recall this function to execute.'
+            + 'If you know whats going on, recall this function to execute.')
         setattr(cast_id, 'ensured', True)
         return
     import ctypes
@@ -63,4 +63,4 @@ def get_source_code(obj, encoding='utf-8'):
             raw = raw.decode(encoding)
         return raw
     except Exception as e:
-        print 'failed, error:', e
+        print('failed, error:', e)

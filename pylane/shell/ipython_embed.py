@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import json
 from IPython.terminal.embed import InteractiveShellEmbed
 from IPython.core.interactiveshell import ExecutionResult
 
@@ -32,24 +33,6 @@ class IPythonShell(InteractiveShellEmbed):
             self.events.trigger('pre_run_cell')
 
         preprocessing_exc_tuple = None
-        # pre_works will transfer A? to get_ipython().magic(u'pinfo A')
-        # try:
-            # # Static input transformations
-            # cell = self.input_transformer_manager.transform_cell(raw_cell)
-        # except SyntaxError:
-            # preprocessing_exc_tuple = sys.exc_info()
-            # cell = raw_cell  # cell has to exist so it can be stored/logged
-        # else:
-            # if len(cell.splitlines()) == 1:
-                # # Dynamic transformations - only applied for single line commands
-                # with self.builtin_trap:
-                    # try:
-                        # # use prefilter_lines to handle trailing newlines
-                        # # restore trailing newline for ast.parse
-                        # cell = self.prefilter_manager.prefilter_lines(cell) + '\n'
-                    # except Exception:
-                        # # don't allow prefilter errors to crash IPython
-                        # preprocessing_exc_tuple = sys.exc_info()
         cell = raw_cell
 
         if store_history:
@@ -140,19 +123,18 @@ class IPythonShell(InteractiveShellEmbed):
     def _runsource(self, source, *args, **kwargs):
         self.sock.send(source)
         raw = self.sock.recv()
-        if raw == '':
+        if raw == '' or raw is None:
             exit(0)
         flag, op = raw[0], raw[1:]
         # TODO old interface which is not used, going to be deprecated.
-        flag
+        flag is '0'
         return op
 
     def remote_completer(self, ipcompleter, text, line=None, cursor_pos=None):
         source = 'complete$%s' % text
         op = self._runsource(source)
-        suggs = []
         try:
-            suggs = eval(op)
+            # ignore those cases like obj not exists
+            return json.loads(op)
         except:
-            pass
-        return suggs
+            return []

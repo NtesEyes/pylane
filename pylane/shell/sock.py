@@ -41,7 +41,7 @@ class Transport(object):
         """
         recv n bytes
         """
-        data = ''
+        data = b''
         while len(data) < n:
             chunk = self.sock.recv(n - len(data))
             if not chunk:
@@ -72,7 +72,7 @@ class SockClient(Transport):
     def connect(self):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         e = None
-        for i in xrange(self.CONNECT_RETRIES):
+        for i in range(self.CONNECT_RETRIES):
             try:
                 sock.connect((self.host, self.port))
                 break
@@ -112,7 +112,7 @@ class SockServer(Transport):
         bind and listen
         """
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        for i in xrange(self.BIND_RETRIES):
+        for i in range(self.BIND_RETRIES):
             port = self.get_port()
             try:
                 sock.bind((self.host, port))
