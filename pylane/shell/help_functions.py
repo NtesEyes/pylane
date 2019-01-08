@@ -43,24 +43,43 @@ def get_classes(class_name):
 def cast_id(object_id):
     """cast_id(object_id) -> object"""
     if not getattr(cast_id, 'ensured', False):
-        print('Warning: If you provide an invalid or expired id, '\
-            + 'this call will cause a segment fault, '\
-            + 'and the attached process will be killed.\n'\
-            + 'cast_id will do nothing this time.\n'\
-            + 'If you know whats going on, recall this function to execute.')
+        print("""Warning: If you provide an invalid or expired id, this call will cause a segment fault,
+the attached process will be killed.
+cast_id will do nothing this time. If you know whats going on, recall this function to execute.""")
         setattr(cast_id, 'ensured', True)
         return
     import ctypes
     return ctypes.cast(object_id, ctypes.py_object).value
 
 
-def get_source_code(obj, encoding='utf-8'):
+def get_source_code(obj):
     """get_source_code(obj, encoding='utf-8') -> source_code_string : print it for pretty format"""
     import inspect
     try:
-        raw = ''.join(inspect.getsourcelines(obj)[0])
-        if encoding:
-            raw = raw.decode(encoding)
-        return raw
+        return ''.join(inspect.getsourcelines(obj)[0])
     except Exception as e:
         print('failed, error:', e)
+
+
+def print_source_code(obj):
+    print(get_source_code(obj))
+
+
+def get_thread_stacks():
+    import threading
+    import sys
+    import traceback
+    stacks = {}
+    frames = sys._current_frames()
+    for thread in threading.enumerate():
+        frame = frames.get(thread.ident)
+        stack = ''.join(traceback.format_stack(frame)) if frame else ''
+        stacks[thread.name] = stack
+    return stacks
+
+
+def print_thread_stacks():
+    stacks = get_thread_stacks()
+    for name, stacks in stacks.items():
+        print("Thread:", name)
+        print(stacks)
