@@ -2,9 +2,14 @@
 
 
 from setuptools import setup
+from os import path
 
 
-VERSION = '0.0.2'
+VERSION = '0.0.3'
+
+this_directory = path.abspath(path.dirname(__file__))
+with open(path.join(this_directory, 'README.md'), encoding='utf-8') as f:
+    long_description = f.read()
 
 
 setup(
@@ -12,6 +17,8 @@ setup(
     version=VERSION,
     author='valensc, Wu Xiao',
     author_email='weidong1312@gmail.com, notgiven@gmail.com',
+    long_description=long_description,
+    long_description_content_type='text/markdown',
     url='https://github.com/NtesEyes/pylane',
     download_url='https://github.com/NtesEyes/pylane/archive/0.0.2.tar.gz',
     packages=[
