@@ -8,6 +8,8 @@ Don't Import Any Unnecessary things.
 Use remote ipc to inject, don't import them in remote process in case of reload.
 '''
 
+from __future__ import print_function
+
 
 def get_insts(class_name):
     """get_insts(class_name) -> instance_list"""
@@ -53,7 +55,7 @@ cast_id will do nothing this time. If you know whats going on, recall this funct
 
 
 def get_source_code(obj):
-    """get_source_code(obj, encoding='utf-8') -> source_code_string : print it for pretty format"""
+    """get_source_code(obj) -> source_code_string : print it for pretty format"""
     import inspect
     try:
         return ''.join(inspect.getsourcelines(obj)[0])
@@ -62,24 +64,53 @@ def get_source_code(obj):
 
 
 def print_source_code(obj):
+    """print_source_code(obj) -> None : print source code."""
     print(get_source_code(obj))
 
 
-def get_thread_stacks():
+def inspect_threads(thread_names=[]):
+    """inspect_threads() -> {thread_name: {"locals": {}, "stack": ""}} : return threads' locals and stack"""
     import threading
     import sys
     import traceback
+    pylane_thread_name = "pylane-shell-thread"
     stacks = {}
     frames = sys._current_frames()
-    for thread in threading.enumerate():
+    threads = threading.enumerate()
+    for thread in threads:
+        if thread.name == pylane_thread_name:
+            continue
+        if thread_names and thread.name not in thread_names:
+            continue
         frame = frames.get(thread.ident)
         stack = ''.join(traceback.format_stack(frame)) if frame else ''
-        stacks[thread.name] = stack
+        stacks[thread.name] = {
+            "locals": frame.f_locals,
+            "stack": stack
+        }
     return stacks
 
 
-def print_thread_stacks():
-    stacks = get_thread_stacks()
-    for name, stacks in stacks.items():
-        print("Thread:", name)
-        print(stacks)
+def print_threads(thread_names=[]):
+    """print_threads() -> None : print threads' stack and locals"""
+    stacks = inspect_threads(thread_names)
+    for name, thread_info in stacks.items():
+        print("\nThread:", name)
+        print("Stack:\n", thread_info['stack'])
+        print("Locals:\n", thread_info['locals'])
+
+
+def log_it(func):
+    """log_it(func) -> decoratored_func : a decorator to print func input and output in log"""
+    import logging
+    import time
+
+    def wrapper(*args, **kwargs):
+        start = time.time()
+        ret = func(*args, **kwargs)
+        duration = time.time() - start
+        logging.warning("func: %s sec_cost: %s input: %s output %s" % (
+            func.__name__, round(duration, 4), repr((args, kwargs)), repr(ret)
+        ))
+        return ret
+    return wrapper

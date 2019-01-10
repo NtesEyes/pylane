@@ -239,6 +239,7 @@ class RemoteShellThread(threading.Thread):
         """
         main run entrance
         """
+        self.name = "pylane-shell-thread"
         try:
             self.sock.connect()
             self.handle()
