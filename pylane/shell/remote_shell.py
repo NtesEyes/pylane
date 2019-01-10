@@ -182,7 +182,8 @@ class RemoteShellThread(threading.Thread):
             state, op = self._runsource('dir(%s)' % item)
             if not state:
                 return op
-            suggs = eval(op)
+            dir_list = eval(op)
+            suggs = [item + '.' + t for t in dir_list]
         # for obj.prefix\t
         elif '.' in text:
             item, sub_text = text.rsplit('.', 1)
