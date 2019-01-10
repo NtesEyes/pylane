@@ -140,9 +140,12 @@ class RemoteShellThread(threading.Thread):
         return out, err
 
     def _runsource(self, source):
-        self._interpreter.runsource(
-            source, filename="<input>", symbol="single")
+        # add \n in case of incomplete section code.
+        ret = self._interpreter.runsource(
+            source + "\n", filename="<input>", symbol="single")
         out, err = self.get_output()
+        if ret is True:
+            err += "error: cmd not completed."
         if err:
             ret = False, err
         else:
