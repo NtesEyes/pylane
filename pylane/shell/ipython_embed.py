@@ -47,12 +47,13 @@ class IPythonShell(InteractiveShellEmbed):
                 self.execution_count += 1
             return error_before_exec(preprocessing_exc_tuple[2])
 
+        return cell
+
+    def ipython_post_works(self, result, store_history):
         if store_history:
             self.history_manager.store_output(self.execution_count)
             self.execution_count += 1
             result.execution_count = self.execution_count
-
-        return cell
 
     def redirect_to_ipython(self, raw_cell):
         """
@@ -92,6 +93,7 @@ class IPythonShell(InteractiveShellEmbed):
             result.result = output
             self._output(output)
             # self.write(output)
+        self.ipython_post_works(result, store_history)
 
         return result
 
