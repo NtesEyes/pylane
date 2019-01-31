@@ -66,14 +66,15 @@ class Injector(object):
             )
         # check ptrace
         ptrace_scope = '/proc/sys/kernel/yama/ptrace_scope'
+        ptrace_req_msg = ('ptrace is disabled, enable it by:'
+                          'echo 0 > /proc/sys/kernel/yama/ptrace_scope\n'
+                          'arg --privileged may be also needed for docker '
+                          'exec/run command to override ptrace_scope.')
         if os.path.exists(ptrace_scope):
             with open(ptrace_scope, 'r') as f:
                 value = int(f.read().strip())
             if value == 1:
-                raise RequirementsInvalid(
-                    'ptrace is disabled, enable it by: ' +
-                    'echo 0 | sudo tee /proc/sys/kernel/yama/ptrace_scope'
-                )
+                raise RequirementsInvalid(ptrace_req_msg)
         else:
             getsebool = '/usr/sbin/getsebool'
             if os.path.exists(getsebool):
@@ -82,10 +83,7 @@ class Injector(object):
                     stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                 out, err = p.communicate()
                 if 'deny_ptrace --> on' in out:
-                    raise RequirementsInvalid(
-                        'ptrace is disabled, enable it by: ' +
-                        'sudo setsebool -P deny_ptrace=off'
-                    )
+                    raise RequirementsInvalid(ptrace_req_msg)
 
     def cleanup(self):
         """"""
@@ -112,7 +110,7 @@ class Injector(object):
                 self.code_file = self.temp_file = temp_file_path
             else:
                 raise RequirementsInvalid(
-                    'Neither code or code file_path specified.'
+                    'Neither code nor code file_path specified.'
                 )
         st = os.stat(self.code_file)
         os.chmod(self.code_file,
