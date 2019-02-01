@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import sys
 import signal
 import time
 import tempfile
@@ -152,17 +153,31 @@ class Injector(object):
         # deprecated, cause its hard to pass python code in shell args
         # exec code is passed by shell command line, so add \\\" and \\\\n
         # run_code = 'exec(\\\"%s\\\")' % (self.code.replace('\n', '\\\\n'))
-        run_code = ' '.join([
-            'code_file = open(\\\"%s\\\");' % self.code_file,
-            'raw_code = code_file.read();',
-            'code_file.close();',
-            # run code async and stop injection early to keep target process safe
-            'from threading import Thread;'
-            'thread = Thread(target=exec, args=(raw_code,));'
-            'thread.daemon = True;'
-            'thread.start()'
-            # 'exec(raw_code)'
-        ])
+        if sys.version_info.major == 2:
+            run_code = ' '.join([
+                '__code_file = open(\\\"%s\\\");' % self.code_file,
+                '__raw_code = __code_file.read();',
+                '__code_file.close();',
+                # python 2 donot support exec as Thread's target param
+                'exec(__raw_code);',
+                'del __code_file;',
+                'del __raw_code;'
+            ])
+        else:
+            run_code = ' '.join([
+                '__code_file = open(\\\"%s\\\");' % self.code_file,
+                '__raw_code = __code_file.read();',
+                '__code_file.close();',
+                # run code async and stop injection early to keep target process safe
+                'from threading import Thread as __Thread;'
+                '__thread = __Thread(target=exec, args=(__raw_code,));'
+                '__thread.daemon = True;'
+                '__thread.start();'
+                'del __code_file;'
+                'del __raw_code;'
+                'del __Thread;'
+                'del __thread;'
+            ])
         # TODO injected code may change path as well
         cleanup_code = ' '.join([
             '%s.path = %s.path[:-%s];' % (
