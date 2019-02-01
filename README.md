@@ -2,38 +2,45 @@
 
 [![PyPI version](https://badge.fury.io/py/pylane.svg)](https://badge.fury.io/py/pylane)
 
-A python vm injector with debug tools, based on gdb and ptrace.
 
-## Features
+[简体中文](README.zh-cn.md)
 
-* Attach a running python process with its pid, directly access and change anything in python vm, or run a user defined python script.
-* Provide a python remote shell.
-    * Use IPython as an interactive interface, support some IPython features such as ? % magic functions.
-    * Provide remote auto completion.
-    * Provide debug toolkit, which can get class/instances by name, get object's source code, etc.
-    * Defined an executor in program, and use the shell as a command interface.
-* Support Linux and BSD
+Pylane is a python vm injector with debug tools, based on gdb and ptrace.
+Pylane uses gdb to trace python process, inject and run some code in its python vm.
 
 ## Usage
 
-install:
+![pylane_show](misc/pylane_show.gif)
 
-```
-pip install pylane
-```
-
-use:
+use inject command to inject a python script in an process:
 
 ```
 pylane inject <PID> <YOUR_PYTHON_FILE>
 ```
 
-to run your code in a process
-
-or
+use shell command to inject an interactive shell:
 
 ```
 pylane shell <PID>
 ```
 
-to get an interactive shell
+Pylane shell features:
+
+* use IPython as its interactive interface, support magic functions like ? and %
+* support remote automatic completion
+* provide debug toolkit functions, such as:
+  * lookup class or instance by name
+  * get source code of an object
+  * print all threads' stack and locals
+
+## Install
+
+```
+pip install pylane
+```
+
+pylane should be installed in virtualenv the target process uses or in os python lib.
+
+## Compatibility
+
+Support Linux and BSD

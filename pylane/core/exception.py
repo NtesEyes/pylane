@@ -17,11 +17,13 @@ def PylaneExceptionHandler(func):
         try:
             return func(*args, **kwargs)
         except PylaneException as e:
-            print(e.args)
+            for arg in e.args:
+                print(arg)
         # TODO
         except Exception as e:
             print('Internal error occured, contact author if u need help.')
-            print(e.args)
+            for arg in e.args:
+                print(arg)
             print(traceback.format_exc())
         exit(1)
     return wrapper

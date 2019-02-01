@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import os
+import sys
+import signal
 import time
 import tempfile
 import platform
@@ -66,14 +68,15 @@ class Injector(object):
             )
         # check ptrace
         ptrace_scope = '/proc/sys/kernel/yama/ptrace_scope'
+        ptrace_req_msg = ('ptrace is disabled, enable it by:'
+                          'echo 0 | sudo tee /proc/sys/kernel/yama/ptrace_scope . '
+                          'arg --privileged may be also needed for docker '
+                          'exec/run command to override ptrace_scope.')
         if os.path.exists(ptrace_scope):
             with open(ptrace_scope, 'r') as f:
                 value = int(f.read().strip())
             if value == 1:
-                raise RequirementsInvalid(
-                    'ptrace is disabled, enable it by: ' +
-                    'echo 0 | sudo tee /proc/sys/kernel/yama/ptrace_scope'
-                )
+                raise RequirementsInvalid(ptrace_req_msg)
         else:
             getsebool = '/usr/sbin/getsebool'
             if os.path.exists(getsebool):
@@ -82,10 +85,7 @@ class Injector(object):
                     stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                 out, err = p.communicate()
                 if 'deny_ptrace --> on' in out:
-                    raise RequirementsInvalid(
-                        'ptrace is disabled, enable it by: ' +
-                        'sudo setsebool -P deny_ptrace=off'
-                    )
+                    raise RequirementsInvalid(ptrace_req_msg)
 
     def cleanup(self):
         """"""
@@ -112,7 +112,7 @@ class Injector(object):
                 self.code_file = self.temp_file = temp_file_path
             else:
                 raise RequirementsInvalid(
-                    'Neither code or code file_path specified.'
+                    'Neither code nor code file_path specified.'
                 )
         st = os.stat(self.code_file)
         os.chmod(self.code_file,
@@ -153,12 +153,31 @@ class Injector(object):
         # deprecated, cause its hard to pass python code in shell args
         # exec code is passed by shell command line, so add \\\" and \\\\n
         # run_code = 'exec(\\\"%s\\\")' % (self.code.replace('\n', '\\\\n'))
-        run_code = ' '.join([
-            'code_file = open(\\\"%s\\\");' % self.code_file,
-            'raw_code = code_file.read();',
-            'code_file.close();',
-            'exec(raw_code)'
-        ])
+        if sys.version_info.major == 2:
+            run_code = ' '.join([
+                '__code_file = open(\\\"%s\\\");' % self.code_file,
+                '__raw_code = __code_file.read();',
+                '__code_file.close();',
+                # python 2 donot support exec as Thread's target param
+                'exec(__raw_code);',
+                'del __code_file;',
+                'del __raw_code;'
+            ])
+        else:
+            run_code = ' '.join([
+                '__code_file = open(\\\"%s\\\");' % self.code_file,
+                '__raw_code = __code_file.read();',
+                '__code_file.close();',
+                # run code async and stop injection early to keep target process safe
+                'from threading import Thread as __Thread;'
+                '__thread = __Thread(target=exec, args=(__raw_code,));'
+                '__thread.daemon = True;'
+                '__thread.start();'
+                'del __code_file;'
+                'del __raw_code;'
+                'del __Thread;'
+                'del __thread;'
+            ])
         # TODO injected code may change path as well
         cleanup_code = ' '.join([
             '%s.path = %s.path[:-%s];' % (
@@ -172,14 +191,20 @@ class Injector(object):
             'call PyRun_SimpleString("%s")' % prepare_code,
             'call PyRun_SimpleString("%s")' % run_code,
             'call PyRun_SimpleString("%s")' % cleanup_code,
+            # make sure previous codes are safe.
+            # gdb exit without GIL release is a disaster for target process.
             'call PyGILState_Release($1)',
         ]
+
+    def timeout_exit(self, process):
+        print("timeout in %s secs, exit." % self.timeout)
+        os.kill(process.pid, signal.SIGTERM)
 
     def inject(self):
         """Run inject"""
         codes = self.generate_gdb_codes()
         process = self.run(codes)
-        timer = Timer(self.timeout, lambda p: p.kill(), [process])
+        timer = Timer(self.timeout, self.timeout_exit, (process,))
         out = b''
         err = b''
         try:
@@ -189,9 +214,8 @@ class Injector(object):
             timer.cancel()
             self.cleanup()
             if self.verbose:
-                print('stdout:')
-                print(out)
-                print('stderr:')
+                print('stdout:', out)
+                print('stderr:', err)
                 print(err)
             if b'Operation not permitted' in err:
                 print('Cannot attach a process without perm.')
