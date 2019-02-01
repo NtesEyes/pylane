@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import signal
 import time
 import tempfile
 import platform
@@ -67,7 +68,7 @@ class Injector(object):
         # check ptrace
         ptrace_scope = '/proc/sys/kernel/yama/ptrace_scope'
         ptrace_req_msg = ('ptrace is disabled, enable it by:'
-                          'echo 0 > /proc/sys/kernel/yama/ptrace_scope\n'
+                          'echo 0 | sudo tee /proc/sys/kernel/yama/ptrace_scope . '
                           'arg --privileged may be also needed for docker '
                           'exec/run command to override ptrace_scope.')
         if os.path.exists(ptrace_scope):
@@ -155,7 +156,12 @@ class Injector(object):
             'code_file = open(\\\"%s\\\");' % self.code_file,
             'raw_code = code_file.read();',
             'code_file.close();',
-            'exec(raw_code)'
+            # run code async and stop injection early to keep target process safe
+            'from threading import Thread;'
+            'thread = Thread(target=exec, args=(raw_code,));'
+            'thread.daemon = True;'
+            'thread.start()'
+            # 'exec(raw_code)'
         ])
         # TODO injected code may change path as well
         cleanup_code = ' '.join([
@@ -170,14 +176,20 @@ class Injector(object):
             'call PyRun_SimpleString("%s")' % prepare_code,
             'call PyRun_SimpleString("%s")' % run_code,
             'call PyRun_SimpleString("%s")' % cleanup_code,
+            # make sure previous codes are safe.
+            # gdb exit without GIL release is a disaster for target process.
             'call PyGILState_Release($1)',
         ]
+
+    def timeout_exit(self, process):
+        print("timeout in %s secs, exit." % self.timeout)
+        os.kill(process.pid, signal.SIGTERM)
 
     def inject(self):
         """Run inject"""
         codes = self.generate_gdb_codes()
         process = self.run(codes)
-        timer = Timer(self.timeout, lambda p: p.kill(), [process])
+        timer = Timer(self.timeout, self.timeout_exit, (process,))
         out = b''
         err = b''
         try:
@@ -187,9 +199,8 @@ class Injector(object):
             timer.cancel()
             self.cleanup()
             if self.verbose:
-                print('stdout:')
-                print(out)
-                print('stderr:')
+                print('stdout:', out)
+                print('stderr:', err)
                 print(err)
             if b'Operation not permitted' in err:
                 print('Cannot attach a process without perm.')
