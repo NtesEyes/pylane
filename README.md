@@ -2,7 +2,7 @@
 
 [![PyPI version](https://badge.fury.io/py/pylane.svg)](https://badge.fury.io/py/pylane)
 
-An python vm injector with debug tools, based on gdb and ptrace.
+A python vm injector with debug tools, based on gdb and ptrace.
 
 ## Features
 
@@ -10,7 +10,7 @@ An python vm injector with debug tools, based on gdb and ptrace.
 * Provide a python remote shell.
     * Use IPython as an interactive interface, support some IPython features such as ? % magic functions.
     * Provide remote auto completion.
-    * Provide debug toolkit, we can get class/instances by name, get object's source code, etc.
+    * Provide debug toolkit, which can get class/instances by name, get object's source code, etc.
     * Defined an executor in program, and use the shell as a command interface.
 * Support Linux and BSD
 
