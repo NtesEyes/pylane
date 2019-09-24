@@ -120,7 +120,8 @@ class Injector(object):
 
     def ensure_pid(self, pid):
         """"""
-        if not pid or not os.path.exists('/proc/%s' % pid):
+        ps_cmd = "ps a | grep -v grep | grep -w %s" % pid
+        if not pid or not subprocess.getoutput(ps_cmd):
             raise RequirementsInvalid('Process %s not exist.' % pid)
         self.pid = pid
 
