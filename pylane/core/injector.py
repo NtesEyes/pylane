@@ -188,13 +188,14 @@ class Injector(object):
             )
         ])
         return [
-            'call PyGILState_Ensure()',
-            'call PyRun_SimpleString("%s")' % prepare_code,
-            'call PyRun_SimpleString("%s")' % run_code,
-            'call PyRun_SimpleString("%s")' % cleanup_code,
+            # use char in case of symbol PyGilState_STATE not found
+            'call $gil_state = (char) PyGILState_Ensure()',
+            'call (void) PyRun_SimpleString("%s")' % prepare_code,
+            'call (void) PyRun_SimpleString("%s")' % run_code,
+            'call (void) PyRun_SimpleString("%s")' % cleanup_code,
             # make sure previous codes are safe.
             # gdb exit without GIL release is a disaster for target process.
-            'call PyGILState_Release($1)',
+            'call (void) PyGILState_Release($gil_state)',
         ]
 
     def timeout_exit(self, process):
