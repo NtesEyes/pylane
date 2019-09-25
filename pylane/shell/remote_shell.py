@@ -151,7 +151,7 @@ class RemoteShellThread(threading.Thread):
         else:
             ret = True, out
         if self.debug:
-            file('/tmp/pmx-shell-log', 'w').write("%s\n%s" % (
+            open('/tmp/pmx-shell-log', 'w').write("%s\n%s" % (
                 source, ret))
         return ret
 
