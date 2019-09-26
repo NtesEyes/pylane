@@ -5,7 +5,7 @@ from setuptools import setup
 from os import path
 
 
-VERSION = '0.0.6'
+VERSION = '0.0.8'
 
 this_directory = path.abspath(path.dirname(__file__))
 with open(path.join(this_directory, 'README.md')) as f:
