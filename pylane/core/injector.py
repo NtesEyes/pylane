@@ -15,6 +15,13 @@ from .exception import (
     PylaneExceptionHandler
 )
 
+try:
+    # py3
+    from subprocess import getoutput
+except ImportError:
+    # py2
+    from commands import getoutput
+
 
 class Injector(object):
     """Inject a python process, run some code inside the vm."""
@@ -120,8 +127,8 @@ class Injector(object):
 
     def ensure_pid(self, pid):
         """"""
-        ps_cmd = "ps a | grep -v grep | grep -w %s" % pid
-        if not pid or not subprocess.getoutput(ps_cmd):
+        ps_cmd = "ps a | awk '{print $1}' | grep -w %s" % pid
+        if not pid or not getoutput(ps_cmd):
             raise RequirementsInvalid('Process %s not exist.' % pid)
         self.pid = pid
 
