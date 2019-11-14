@@ -127,7 +127,7 @@ class Injector(object):
 
     def ensure_pid(self, pid):
         """"""
-        ps_cmd = "ps a | awk '{print $1}' | grep -w %s" % pid
+        ps_cmd = "ps ax | awk '{print $1}' | grep -w %s" % pid
         if not pid or not getoutput(ps_cmd):
             raise RequirementsInvalid('Process %s not exist.' % pid)
         self.pid = pid
