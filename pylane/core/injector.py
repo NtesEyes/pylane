@@ -6,6 +6,7 @@ import signal
 import time
 import tempfile
 import platform
+import re
 import subprocess
 import stat
 import atexit
@@ -65,8 +66,15 @@ class Injector(object):
         if 'BSD' in platform.platform():
             env['bsd'] = True
             self.run = self._bsd_run
-        if platform.dist()[0] == 'Ubuntu':
-            env['ubuntu'] = True
+
+        try:
+            with open('/etc/lsb-release', 'rb') as f:
+                lsb_release = f.read()
+            distrib = re.search(b'DISTRIB_ID=(.+)', lsb_release, re.MULTILINE).groups()[0]
+            if distrib == b'Ubuntu':
+                env['ubuntu'] = True
+        except Exception:
+            pass
 
         # check gdb
         if not os.access(self.gdb, os.X_OK):
