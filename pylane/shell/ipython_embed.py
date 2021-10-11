@@ -78,7 +78,7 @@ class IPythonShell(InteractiveShellEmbed):
                 self, raw_cell, store_history, silent, shell_futures
             )
 
-        result = ExecutionResult()
+        result = ExecutionResult(None)
         self.displayhook.exec_result = result
 
         if (not raw_cell) or raw_cell.isspace():
