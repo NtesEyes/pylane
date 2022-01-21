@@ -34,7 +34,7 @@ setup(
         # 'build_py': build_py
     # },
     install_requires=[
-        "ipython==5.7",
+        "ipython==7.16.3",
         # 'ipython==5.8;python_version<"3.4"',
         # 'ipython==7.2;python_version>="3.4"',
         "Click==7.0",
