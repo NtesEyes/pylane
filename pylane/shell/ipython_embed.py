@@ -78,7 +78,7 @@ class IPythonShell(InteractiveShellEmbed):
                 self, raw_cell, store_history, silent, shell_futures
             )
 
-        result = ExecutionResult()
+        result = ExecutionResult(None)
         self.displayhook.exec_result = result
 
         if (not raw_cell) or raw_cell.isspace():
@@ -129,7 +129,7 @@ class IPythonShell(InteractiveShellEmbed):
             exit(0)
         flag, op = raw[0], raw[1:]
         # TODO old interface which is not used, going to be deprecated.
-        flag is '0'
+        flag == '0'
         return op
 
     def remote_completer(self, ipcompleter, text, line=None, cursor_pos=None):
